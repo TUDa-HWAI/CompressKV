@@ -2,9 +2,9 @@
 
 This repository contains the code for the paper “CompressKV: Semantic Retrieval Heads Know What Tokens Are Not Important Before Generation”.
 
-<!-- ## 📖 Paper
+## 📖 Paper
 
-Read the full paper: [CompressKV (arXiv)](https://arxiv.org/abs/XXXX.XXXXX) -->
+Read the full paper: [CompressKV: Semantic Retrieval Heads Know What Tokens Are Not Important Before Generation(arXiv)](https://arxiv.org/abs/2508.02401v1)
 
 ## 🚀 Quick Start
 
@@ -43,7 +43,7 @@ pip install -r requirements.txt
 
 # Masking-Based Ablation of Different Head Types for LLaMA
 cd Retrieval_Head_Identification
-./scripts/run_needle_mask_llama.sh
+./run_needle_mask_llama.sh
 # Visualization of masking heads for LLaMA
 python show_image_masking_head.py \
     --model <MODEL_NAME> \
@@ -52,7 +52,7 @@ python show_image_masking_head.py \
 
 # Masking-Based Ablation of Different Head Types for Mistral
 cd Retrieval_Head_Identification
-./scripts/run_needle_mask_mistral.sh
+./run_needle_mask_mistral.sh
 # Visualization of masking heads for Mistral
 python show_image_masking_head.py \
     --model <MODEL_NAME> \
