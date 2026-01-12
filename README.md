@@ -17,15 +17,9 @@ conda activate compresskv
 # Install CUDA compiler
 conda install nvidia/label/cuda-12.1.0::cuda-nvcc -y
 
-# Install PyTorch with CUDA support
-conda install pytorch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 \
-  pytorch-cuda=12.1 -c pytorch -c nvidia -y
-
-
-
 # Install FlashAttention and other Python dependencies
-pip install flash-attn==2.7.3
 pip install -r requirements.txt
+pip install flash-attn==2.7.3 --no-build-isolation
 
 #Install adakv kernel
 cd methods/adakv
