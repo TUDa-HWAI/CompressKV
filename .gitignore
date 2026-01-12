@@ -1,0 +1,13 @@
+# Ignore VSCode workspace settings
+.vscode/
+
+# Ignore history folder
+.history/
+
+#Ignore output folder
+output/
+
+**/result/
+
+**/__pycache__/
+
