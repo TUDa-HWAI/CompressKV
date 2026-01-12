@@ -1,4 +1,4 @@
-# import ipdb;
+
 import os
 from datasets import load_dataset
 import torch
@@ -56,14 +56,13 @@ def parse_args(args=None):
     parser.add_argument("--save_path", default="", type=str, help="Path to save the output")
 
     # KV Compression
-    parser.add_argument("--method", type=str, default="fastkv", choices=["fullkv", "pyramidkv", "snapkv", "cakekv","compresskv","adakv", "headkv","streamingllm"])
+    parser.add_argument("--method", type=str, default="compresskv", choices=["fullkv", "pyramidkv", "snapkv", "cakekv","compresskv","adakv", "headkv","streamingllm","adacompresskv","headcompresskv"])
     parser.add_argument("--window_size", type=int, default=8)
     parser.add_argument("--max_capacity_prompt", type=int, default=512)
     parser.add_argument("--kernel_size", type=int, default=5)
     parser.add_argument("--pooling", type=str, default="avgpool")
     
-    #pyramidkv
-    parser.add_argument('--pyram_beta', default=20,type=int)
+
     #cakekv
     parser.add_argument('--gamma', type=float, default=200.0)
     parser.add_argument('--tau1', default=1.0,type=float)
@@ -72,6 +71,23 @@ def parse_args(args=None):
     parser.add_argument('--layer_importance_score_path',type=str,default=None,help="path to load the layer importance score for budget allocation")
     parser.add_argument('--importance_head_path',type=str,default=None,help="path to load the importance head for selection")
     parser.add_argument('--first_k',type=int,default=4,help="path to load the importance head for selection")
+    
+
+    # AdaKV
+    parser.add_argument("--skip", type=int, default=-1)
+    parser.add_argument('--floor_alpha', type=float, default=0.2)
+    parser.add_argument('--normalize', action='store_true')
+    parser.add_argument('--pyram', action='store_true')
+    parser.add_argument('--pyram_beta', default=20,type=int)
+    parser.add_argument('--gqa_support', action='store_true')
+    #headkv
+    # parser.add_argument("--method", type=str, default='ReasonKV', choices=['ReasonKV'])
+    parser.add_argument("--head_choice", type=str, default='reason', choices=['copy', 'reason'])
+    parser.add_argument('--beta', type=float, default=1.2)
+    parser.add_argument('--temp', type=float, default=1.0)
+    parser.add_argument("--head_score_path", type=str, default=None, help="Path to the head_score.json")
+
+    return parser.parse_args(args)
 
 
     return parser.parse_args(args)
@@ -82,10 +98,21 @@ def build_chat(tokenizer, prompt, model_name):
     if 'Llama-2-7b-chat-hf' in model_name:
 
         prompt = f"[INST]{prompt}[/INST]"
-    elif 'Llama-3.1-8B-Instruct' in model_name:
+    elif 'Llama-3' in model_name:
         # print("======== llama build chat ========")
         prompt = f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
-
+    elif "Qwen2.5" in model_name:
+        
+        # print("======== qwen build chat ========")
+        messages = [
+            {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
+        prompt = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
     return prompt
 
 
@@ -101,25 +128,50 @@ def get_pred(rank, world_size, data, max_length, max_gen, prompt_format, dataset
 
 
     if args_all.method == 'snapkv':
-        from methods.snapkv.monkeypatch import replace_llama, replace_mistral
+        from methods.snapkv.monkeypatch import replace_llama, replace_mistral, replace_qwen2
         replace_llama()
         replace_mistral()
+        replace_qwen2()
     elif args_all.method == 'pyramidkv':
-        from methods.pyramidkv.monkeypatch import replace_llama, replace_mistral
+        from methods.pyramidkv.monkeypatch import replace_llama, replace_mistral,replace_qwen2
         replace_llama()
         replace_mistral()
+        replace_qwen2()
     elif args_all.method == 'cakekv':
-        from methods.cakekv.monkeypatch import replace_flashllama_attn_with_cakeattn, replace_flashmistral_attn_with_cakeattn
+        from methods.cakekv.monkeypatch import replace_flashllama_attn_with_cakeattn, replace_flashmistral_attn_with_cakeattn,replace_flashqwen2_attn_with_cakeattn
         replace_flashllama_attn_with_cakeattn()
         replace_flashmistral_attn_with_cakeattn()
+        replace_flashqwen2_attn_with_cakeattn()
     elif args_all.method == 'compresskv':
-        from methods.compresskv.monkeypatch import replace_llama, replace_mistral
+        from methods.compresskv.monkeypatch import replace_llama, replace_mistral,replace_qwen2
         replace_llama()
         replace_mistral()
+        replace_qwen2()
     elif args_all.method == 'streamingllm':
-        from methods.streamingllm.monkeypatch import replace_llama, replace_mistral
+        from methods.streamingllm.monkeypatch import replace_llama, replace_mistral,replace_qwen2
         replace_llama()
         replace_mistral()
+        replace_qwen2()
+    elif args_all.method == "headkv":
+        from methods.headkv.headkv.monkeypatch import replace_llama, replace_mistral,replace_qwen2
+        replace_llama()
+        replace_mistral()
+        replace_qwen2()
+    elif args_all.method == "adakv":
+        from methods.adakv.adaptive_snapkv.monkeypatch import replace_llama, replace_mistral,replace_qwen2
+        replace_llama()
+        replace_mistral()
+        replace_qwen2()
+    elif args_all.method == "adacompresskv":
+        from methods.adacompresskv.adaptive_compresskv.monkeypatch import replace_llama, replace_mistral,replace_qwen2
+        replace_llama()
+        replace_mistral()
+        replace_qwen2()
+    elif args_all.method == "headcompresskv":
+        from methods.headcompresskv.headkv.monkeypatch import replace_llama, replace_mistral,replace_qwen2
+        replace_llama()
+        replace_mistral()
+        replace_qwen2()
     elif args_all.method == "fullkv":
             logger.info(f"using full cache")
     else:
@@ -132,45 +184,117 @@ def get_pred(rank, world_size, data, max_length, max_gen, prompt_format, dataset
     
 
     if args_all.method != "fullkv": 
-        if args_all.method != "cakekv":
-            model.model.config.window_size = args_all.window_size
-            model.model.config.kernel_size = args_all.kernel_size
-            model.model.config.max_capacity_prompt = args_all.max_capacity_prompt
-            model.model.config.pooling = args_all.pooling
-            if args_all.method == "pyramidkv":
-                model.model.config.pyram_beta = args_all.pyram_beta
-            elif args_all.method == "compresskv":
+        if args_all.method != "headkv" and args_all.method != "adakv" and args_all.method != "adacompresskv" and args_all.method != "headcompresskv":
+            if args_all.method != "cakekv":
+                model.model.config.window_size = args_all.window_size
+                model.model.config.kernel_size = args_all.kernel_size
+                model.model.config.max_capacity_prompt = args_all.max_capacity_prompt
+                model.model.config.pooling = args_all.pooling
+                if args_all.method == "pyramidkv":
+                    model.model.config.pyram_beta = args_all.pyram_beta
+                elif args_all.method == "compresskv":
+                    layers = model.model.config.num_hidden_layers
+                    if args_all.layer_importance_score_path is not None:
+                        layer_score = json.load(open(args_all.layer_importance_score_path, "r"))["avg_score"]
+                        max_capacity_prompt_pyramid = error_aware_layer_budget_allocation(layer_score,args_all.max_capacity_prompt*layers,32,args_all.max_capacity_prompt*3)
+                    else:
+                        max_capacity_prompt_pyramid = [args_all.max_capacity_prompt] * layers
+                    with open(args_all.importance_head_path, 'r') as f:
+                        important_head = json.load(f)  
+                    important_head = [important_head[str(i)] for i in range(len(important_head))]
+                    model.model.config.important_heads = important_head
+                    model.model.config.first_k = args_all.first_k
+                    model.model.config.max_capacity_prompt_layer_adaptive = max_capacity_prompt_pyramid
+            elif args_all.method == "cakekv":
+                layers = model.model.config.num_hidden_layers
+                for i in range(layers):
+                    model.model.layers[i].self_attn.config.key_size = [args_all.max_capacity_prompt - args_all.window_size]*layers
+                    model.model.layers[i].self_attn.config.window_size = [args_all.window_size]*layers
+                    model.model.layers[i].self_attn.config.prefill = [True]*layers
+                    model.model.layers[i].self_attn.config.decoding_evict = [None]*layers
+                    model.model.layers[i].self_attn.config.tau1 = args_all.tau1
+                    model.model.layers[i].self_attn.config.tau2 = args_all.tau2
+                    model.model.layers[i].self_attn.config.gamma = args_all.gamma
+                    model.model.layers[i].self_attn.config.prefill_cake_evict = [CakeprefillKVCache(
+                        cache_size=args_all.max_capacity_prompt,
+                        window_size=args_all.window_size,
+                        k_seq_dim=2,
+                        v_seq_dim=2,
+                        num_heads=model.model.layers[i].self_attn.num_heads,
+                        num_layers=layers,
+                        use_cascading=True
+                    )]*layers
+            else:
+                raise ValueError(f"We does not support {args_all.method}") 
+        else:
+            if args_all.method == "adakv":
+                model.config.window_size = args_all.window_size
+                model.config.kernel_size = args_all.kernel_size
+                model.config.base_capacity = args_all.max_capacity_prompt
+                model.config.pooling = args_all.pooling
+                model.config.normalize = args_all.normalize
+                model.config.pyram_mode = args_all.pyram
+                model.config.pyram_beta = args_all.pyram_beta
+                model.config.gqa_support = args_all.gqa_support
+                model.config.floor_alpha = args_all.floor_alpha
+                model.config.skip = args_all.skip
+            elif args_all.method == "headkv":
+                model.config.window_size = args_all.window_size
+                model.config.base_capacity = args_all.max_capacity_prompt
+                model.config.kernel_size = args_all.kernel_size
+                model.config.pooling = args_all.pooling
+                model.config.floor_alpha = args_all.floor_alpha
+                model.config.skip = args_all.skip
+
+                model.config.head_choice = args_all.head_choice
+                model.config.beta = args_all.beta
+                model.config.temp = args_all.temp
+                model.config.normalize = args_all.normalize
+                model.config.gqa_support = args_all.gqa_support
+                model.config.head_score_path = args_all.head_score_path
+            elif args_all.method == "adacompresskv":
+                model.config.window_size = args_all.window_size
+                model.config.kernel_size = args_all.kernel_size
+                model.config.base_capacity = args_all.max_capacity_prompt
+                model.config.pooling = args_all.pooling
+                model.config.normalize = args_all.normalize
+                model.config.pyram_mode = args_all.pyram
+                model.config.pyram_beta = args_all.pyram_beta
+                model.config.gqa_support = args_all.gqa_support
+                model.config.floor_alpha = args_all.floor_alpha
+                model.config.skip = args_all.skip
                 layers = model.model.config.num_hidden_layers
                 if args_all.layer_importance_score_path is not None:
                     layer_score = json.load(open(args_all.layer_importance_score_path, "r"))["avg_score"]
-                    max_capacity_prompt_layer_adaptive = error_aware_layer_budget_allocation(layer_score,args_all.max_capacity_prompt*layers,32,args_all.max_capacity_prompt*3)
+                    max_capacity_prompt_pyramid = error_aware_layer_budget_allocation(layer_score,args_all.max_capacity_prompt*layers,32,args_all.max_capacity_prompt*3)
                 else:
-                    max_capacity_prompt_layer_adaptive = [args_all.max_capacity_prompt] * layers
+                    max_capacity_prompt_pyramid = [args_all.max_capacity_prompt] * layers
                 with open(args_all.importance_head_path, 'r') as f:
                     important_head = json.load(f)  
                 important_head = [important_head[str(i)] for i in range(len(important_head))]
                 model.model.config.important_heads = important_head
                 model.model.config.first_k = args_all.first_k
-                model.model.config.max_capacity_prompt_layer_adaptive = max_capacity_prompt_layer_adaptive
-        elif args_all.method == "cakekv":
-            layers = model.model.config.num_hidden_layers
-            for i in range(layers):
-                model.model.layers[i].self_attn.config.key_size = [args_all.max_capacity_prompt - args_all.window_size]*layers
-                model.model.layers[i].self_attn.config.window_size = [args_all.window_size]*layers
-                model.model.layers[i].self_attn.config.prefill = [True]*layers
-                model.model.layers[i].self_attn.config.decoding_evict = [None]*layers
-                model.model.layers[i].self_attn.config.tau1 = args_all.tau1
-                model.model.layers[i].self_attn.config.tau2 = args_all.tau2
-                model.model.layers[i].self_attn.config.gamma = args_all.gamma
-                model.model.layers[i].self_attn.config.prefill_cake_evict = [CakeprefillKVCache(
-                    cache_size=args_all.max_capacity_prompt,
-                    window_size=args_all.window_size,
-                    k_seq_dim=2,
-                    v_seq_dim=2,
-                    num_heads=model.model.layers[i].self_attn.num_heads,
-                    num_layers=layers,
-                    use_cascading=True
-                )]*layers
+                model.model.config.max_capacity_prompt_pyramid = max_capacity_prompt_pyramid
+            elif args_all.method == "headcompresskv":
+
+                model.config.window_size = args_all.window_size
+                model.config.base_capacity = args_all.max_capacity_prompt
+                model.config.kernel_size = args_all.kernel_size
+                model.config.pooling = args_all.pooling
+                model.config.floor_alpha = args_all.floor_alpha
+                model.config.skip = args_all.skip
+
+                model.config.head_choice = args_all.head_choice
+                model.config.beta = args_all.beta
+                model.config.temp = args_all.temp
+                model.config.normalize = args_all.normalize
+                model.config.gqa_support = args_all.gqa_support
+                model.config.head_score_path = args_all.head_score_path
+                with open(args_all.importance_head_path, 'r') as f:
+                    important_head = json.load(f)  
+                important_head = [important_head[str(i)] for i in range(len(important_head))]
+                model.model.config.important_heads = important_head
+                model.model.config.first_k = args_all.first_k
 
 
     for json_obj in tqdm(data):

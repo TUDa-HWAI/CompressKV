@@ -84,10 +84,9 @@ def llama_attn_forward_cake(
     if past_key_value is not None:
         # sin and cos are specific to RoPE models; cache_position needed for the static cache
         cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
-        # import ipdb;ipdb.set_trace()
+
         key_states, value_states = past_key_value.update(key_states, value_states, self.layer_idx, cache_kwargs)
-        # if self.layer_idx == 0:
-        #     import ipdb;ipdb.set_trace()
+
     key_states = repeat_kv(key_states, self.num_key_value_groups)
     value_states = repeat_kv(value_states, self.num_key_value_groups)
     dropout_rate = 0.0 if not self.training else self.attention_dropout

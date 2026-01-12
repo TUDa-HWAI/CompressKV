@@ -88,7 +88,6 @@ class compresskvCluster():
 
 def init_compresskv(self):
     if not hasattr(self, "kv_cluster"):
-        # import ipdb;ipdb.set_trace()
         if not hasattr(self.config, 'window_size'):
             self.config.window_size = 8
         if not hasattr(self.config, 'max_capacity_prompt'):

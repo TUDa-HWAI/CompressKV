@@ -30,7 +30,7 @@ class CakeCache(Cache):
         self.pref_scores = []
         self.evict_scores = []
         self.layer_budget = []
-        # import ipdb;ipdb.set_trace()
+
     def __getitem__(self, layer_idx: int) -> List[Tuple[torch.Tensor]]:
         """
         Support for backwards-compatible `past_key_value` indexing, e.g. `past_key_value[0][0].shape[2]` to get the

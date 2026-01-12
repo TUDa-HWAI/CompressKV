@@ -86,7 +86,7 @@ def qwen2_attn_forward_cake(
             and kv_seq_len > self.config.sliding_window
             and cache_has_contents
         ):
-            import ipdb;ipdb.set_trace()
+ 
             slicing_tokens = 1 - self.config.sliding_window
 
             past_key = past_key_value[self.layer_idx][0]
@@ -133,8 +133,7 @@ def qwen2_attn_forward_cake(
         var = torch.var(tmp_attn_weights[:,:,-self.config.window_size[self.layer_idx]:,:-self.config.window_size[self.layer_idx]],dim=-2).sum(0).sum(0).sum(0)
 
         pref_score = (disp**(1/self.config.tau1)*var**(1/self.config.tau2)).cpu().numpy()
-        if np.isnan(pref_score).any():    # 对！
-            import ipdb; ipdb.set_trace()
+
         #compute preference score and hh score
         attention_score = tmp_attn_weights[:, :, -self.config.window_size[self.layer_idx]:, :] 
 

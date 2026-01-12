@@ -48,7 +48,7 @@ def replace_mistral():
     # if warning_flag:
     #     warnings.warn(
     #         f"Transformers version {transformers_version} might not be compatible with SnapKV. SnapKV is tested with Transformers version {version_list}.")
-    # import ipdb;ipdb.set_trace()
+
     transformers.models.mistral.modeling_mistral.MistralFlashAttention2.forward = mistral_flash_attn2_forward
     transformers.models.mistral.modeling_mistral.MistralModel.forward = mistral_model_forward
 

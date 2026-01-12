@@ -13,6 +13,7 @@ import torch.multiprocessing as mp
 from loguru import logger
 from longbench.model.modeling_llama_new import LlamaForCausalLM
 from longbench.model.modeling_mistral_new import MistralForCausalLM
+from longbench.model.modeling_qwen2_new import Qwen2ForCausalLM
 from tqdm import trange
 
 
@@ -42,7 +43,18 @@ def build_chat(tokenizer, prompt, model_name):
         prompt = f"[INST]{prompt}[/INST]"
     elif 'llama-3' in model_name.lower():
         prompt = f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+    elif "qwen2" in model_name.lower():
     
+        print("======== qwen build chat ========")
+        messages = [
+            {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
+        prompt = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
     return prompt
 
 
@@ -79,6 +91,10 @@ def get_pred(rank, world_size, data, max_length, max_gen, prompt_format, dataset
     elif "mistral" in args_all.model.lower():
         logger.info(f"Loading mistral model {args_all.model} with flash attention 2")
         model = MistralForCausalLM.from_pretrained(args_all.model, config = config, torch_dtype=dtype,  attn_implementation="flash_attention_2").to(device)
+    elif "qwen2" in args_all.model.lower():
+        logger.info(f"Loading Qwen2 model {args_all.model} with flash attention 2")
+        dtype = torch.bfloat16
+        model = Qwen2ForCausalLM.from_pretrained(args_all.model, config = config, torch_dtype=dtype,  attn_implementation="flash_attention_2").to(device)
     else:
         raise ValueError(f"Model {args_all.model} not supported")
         

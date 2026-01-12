@@ -1,4 +1,5 @@
 {
     "mistralai/Mistral-7B-Instruct-v0.3":31500,
-    "meta-llama/Llama-3.1-8B-Instruct": 127500
+    "meta-llama/Llama-3.1-8B-Instruct": 127500,
+    "Qwen/Qwen2.5-7B-Instruct": 127500
 }

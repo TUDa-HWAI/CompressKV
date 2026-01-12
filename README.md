@@ -14,17 +14,22 @@ Read the full paper: [CompressKV: Semantic Retrieval Heads Know What Tokens Are 
 # Create and activate a conda environment
 conda create -n compresskv python=3.11 -y
 conda activate compresskv
+# Install CUDA compiler
+conda install nvidia/label/cuda-12.1.0::cuda-nvcc -y
 
 # Install PyTorch with CUDA support
 conda install pytorch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 \
   pytorch-cuda=12.1 -c pytorch -c nvidia -y
 
-# Install CUDA compiler
-conda install nvidia/label/cuda-12.1.0::cuda-nvcc -y
+
 
 # Install FlashAttention and other Python dependencies
 pip install flash-attn==2.7.3
 pip install -r requirements.txt
+
+#Install adakv kernel
+cd methods/adakv
+make i
 ```
 
 ### 2. Running Evaluations
