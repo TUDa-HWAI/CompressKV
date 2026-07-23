@@ -104,3 +104,14 @@ We thank the authors of the following open‑source projects for their foundatio
 * [KVCache-Factory](https://github.com/Zefan-Cai/KVCache-Factory)
 * [Needle In A Haystack](https://github.com/gkamradt/LLMTest_NeedleInAHaystack)
 * and other open‑source projects
+
+## Reference
+@misc{lin2026compresskvsemanticretrievalguidedkvcachecompression,
+      title={CompressKV: Semantic-Retrieval-Guided KV-Cache Compression for Resource-Efficient Long-Context LLM Inference}, 
+      author={Xiaolin Lin and Jingcun Wang and Olga Kondrateva and Yiyu Shi and Bing Li and Grace Li Zhang},
+      year={2026},
+      eprint={2606.24467},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2606.24467}, 
+}
